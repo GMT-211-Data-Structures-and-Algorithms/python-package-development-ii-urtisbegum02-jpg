@@ -75,6 +75,44 @@ class Point:
         mid_x = (self.x + other.x) / 2
         mid_y = (self.y + other.y) / 2
         return Point(mid_x, mid_y, f"midpoint({self.name},{other.name})")
+    
+    def distance_to_line(self, line):
+        """
+        Calculate the perpendicular distance from this point to a line.
+        
+        Uses the formula: |ax + by + c| / sqrt(a^2 + b^2)
+        where the line equation is ax + by + c = 0
+        
+        Args:
+            line (Line): The line object
+            
+        Returns:
+            float: The perpendicular distance from the point to the line
+        """
+        if not isinstance(line, Line):
+            raise TypeError("line must be a Line object")
+        
+        # Get line equation coefficients
+        # Line passing through two points: (x1, y1) and (x2, y2)
+        # Equation: (y2 - y1)x - (x2 - x1)y + (x2 - x1)y1 - (y2 - y1)x1 = 0
+        
+        x1, y1 = line.start.x, line.start.y
+        x2, y2 = line.end.x, line.end.y
+        
+        # Coefficients for ax + by + c = 0
+        a = y2 - y1
+        b = -(x2 - x1)
+        c = (x2 - x1) * y1 - (y2 - y1) * x1
+        
+        # Distance formula
+        numerator = abs(a * self.x + b * self.y + c)
+        denominator = math.sqrt(a**2 + b**2)
+        
+        if denominator == 0:
+            # Points are the same
+            return 0
+        
+        return numerator / denominator
 
 
 class Line:
@@ -157,6 +195,61 @@ class Line:
             return None
         b = self.start.y - m * self.start.x
         return (m, b)
+    
+    def perpendicular_point(self, point):
+        """
+        Find the point on this line closest to a given point (perpendicular projection).
+        
+        Args:
+            point (Point): The point to project onto the line
+            
+        Returns:
+            Point: A new Point representing the perpendicular point on the line
+        """
+        if not isinstance(point, Point):
+            raise TypeError("point must be a Point object")
+        
+        x1, y1 = self.start.x, self.start.y
+        x2, y2 = self.end.x, self.end.y
+        px, py = point.x, point.y
+        
+        # Vector from start to end
+        dx = x2 - x1
+        dy = y2 - y1
+        
+        # Length squared
+        length_sq = dx**2 + dy**2
+        
+        if length_sq == 0:
+            # Start and end are the same point
+            return Point(x1, y1, f"perpendicular_to_{point.name}")
+        
+        # Parameter t for the projection
+        # t = ((P - A) · (B - A)) / |B - A|^2
+        t = ((px - x1) * dx + (py - y1) * dy) / length_sq
+        
+        # Clamp t to [0, 1] to stay on the line segment
+        t = max(0, min(1, t))
+        
+        # Calculate the perpendicular point
+        perp_x = x1 + t * dx
+        perp_y = y1 + t * dy
+        
+        return Point(perp_x, perp_y, f"perp({point.name})")
+    
+    def distance_to_point(self, point):
+        """
+        Calculate the perpendicular distance from a point to this line.
+        
+        Args:
+            point (Point): The point
+            
+        Returns:
+            float: The perpendicular distance
+        """
+        if not isinstance(point, Point):
+            raise TypeError("point must be a Point object")
+        return point.distance_to_line(self)
 
 
 def load_points_from_file(filename):
@@ -246,4 +339,4 @@ if __name__ == "__main__":
     print("\nLine 1 length:", line1.length())
     print("Line 1 slope:", line1.slope())
     print("Line 1 equation (m, b):", line1.equation())
-    
+
